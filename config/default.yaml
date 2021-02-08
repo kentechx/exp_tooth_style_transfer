@@ -1,0 +1,22 @@
+GENERAL:
+  seed: 11
+
+DATA:
+  data_dir: datasets/train
+  batch_size: 6
+  train_workers: 4
+
+  augmentation: True
+
+LIT_MODEL:
+  pretrained_weights:
+
+  # optimizer
+  weight_decay: 0.001
+  lr: 0.0006
+  # loss
+  lambda_: 0.1
+
+TRAINER:
+  max_epochs: 1000
+  progress_bar_refresh_rate: 1

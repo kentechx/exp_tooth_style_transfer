@@ -1,0 +1,6 @@
+a.py
+lightning_logs
+datasets
+MNIST
+*.pyc
+.idea
