@@ -1,4 +1,5 @@
 GENERAL:
+  model_name: vae
   seed: 11
 
 DATA:
@@ -13,7 +14,8 @@ LIT_MODEL:
 
   # optimizer
   weight_decay: 0.001
-  lr: 0.0006
+  lr: 0.0005
+  beta: 4
   # loss
   lambda_: 0.1
 

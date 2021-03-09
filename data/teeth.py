@@ -46,17 +46,13 @@ class ImageDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage=None):
-        self.content_images = ImageDataset(os.path.join(self.data_dir, 'content'))
+        # self.content_images = ImageDataset(os.path.join(self.data_dir, 'content'))
         # self.content_images, _ = random_split(self.content_images, [12, len(self.content_images)-12])
         self.style_images = ImageDataset(os.path.join(self.data_dir, 'style'))
         # self.style_images, _ = random_split(self.style_images, [12, len(self.style_images)-12])
 
     def train_dataloader(self):
-        concat_dataset = ConcatDataset(
-            self.content_images,
-            self.style_images
-        )
-        return DataLoader(concat_dataset, batch_size=self.batch_size,
+        return DataLoader(self.style_images, batch_size=self.batch_size,
                           shuffle=True,
                           num_workers=self.num_workers,
                           pin_memory=True)

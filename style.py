@@ -4,7 +4,7 @@ from torchvision.utils import save_image
 from PIL import Image
 from torchvision import transforms
 from models.pl_models import LigAdaIN
-from models.AdaIN import mu, sigma
+from models.model import mu, sigma
 
 
 def loadImage(filename):
