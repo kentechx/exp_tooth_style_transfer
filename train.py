@@ -33,10 +33,10 @@ if __name__ == "__main__":
     if args.pretrained_weights:
         model = model.load_from_checkpoint(args.pretrained_weights)
 
-    checkpoint_callback = ModelCheckpoint(monitor='recon_loss', save_last=True, save_top_k=20)
+    checkpoint_callback = ModelCheckpoint(monitor='loss', save_last=True, save_top_k=20)
 
     logger = pl_loggers.TestTubeLogger('lightning_logs', name=args.model_name)
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=[checkpoint_callback], logger=logger)
+    trainer = pl.Trainer.from_argparse_args(args, gpus=1, callbacks=[checkpoint_callback], logger=logger)
     # trainer = pl.Trainer(limit_train_batches=10, limit_val_batches=3)
     # trainer.tune(model, dm)
     trainer.fit(model, dm)

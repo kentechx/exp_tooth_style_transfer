@@ -16,13 +16,14 @@ class ImageDataset(Dataset):
             # transforms.ToTensor(),
             # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
+        self.data = [torch.load(f) for f in self.files]
 
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, idx):
-        return self.preprocess(torch.load(self.files[idx]))
-
+        # return self.preprocess(torch.load(self.files[idx]))
+        return self.preprocess(self.data[idx])
 
 class ConcatDataset(torch.utils.data.Dataset):
     def __init__(self, *datasets):

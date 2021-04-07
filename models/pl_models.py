@@ -24,7 +24,7 @@ class LitVAE(pl.LightningModule):
         self.save_hyperparameters()
 
         self.net = VAE(latent_dim)
-        # self.D = discriminator()
+        self.D = discriminator()
 
         vgg = torch.hub.load('pytorch/vision:v0.6.0', 'vgg19', pretrained=True)
         self.vgg = nn.Sequential(*list(vgg.features.children())[:21])
@@ -70,14 +70,14 @@ class LitVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx, optimizer_idx=0):
         x = batch
-        opt_g = self.optimizers()
         H = self.hparams
 
         # train generator
         if optimizer_idx == 0:
-            self.log('lr/opt_g', opt_g.param_groups[0]['lr'])
+            opt_vae = self.optimizers()[0]
+            self.log('lr/opt_vae', opt_vae.param_groups[0]['lr'])
 
-            gen_img, mu, logvar = self(x)
+            gen_img, mu, logvar, z = self(x)
             if batch_idx % 10 == 0:
                 self.x, self.gen_img = x, gen_img
 
@@ -87,43 +87,58 @@ class LitVAE(pl.LightningModule):
             target_emb = [act.clone() for act in self.activations]
 
             recon_loss = self.reconstruct_loss(out_emb, target_emb)
-            mse = F.mse_loss(gen_img, x)
             kld = self.kl_divergence(mu, logvar)
+            l1 = F.l1_loss(gen_img, x, reduction='sum')
 
-            # valid = torch.ones(c.size(0), 1)
-            # valid = valid.type_as(c)  # gpu
-            #
-            # g_loss = self.adversarial_loss(self.D(gen_img), valid)
-            # self.log('g_loss', g_loss, True)
+            valid = torch.ones(x.size(0), 1)
+            valid = valid.type_as(x)  # gpu
+
+            g_loss = self.adversarial_loss(self.D(gen_img), valid)
+            self.log('g_loss', g_loss, True)
             self.log('recon_loss', recon_loss, True)
-            self.log('mse', mse, True)
             self.log('kld', kld, True)
+            # self.log('l1', l1, True)
 
-            loss = 0.000 * recon_loss + H.beta * kld + mse
+            loss = g_loss + H.lambda_kld * kld + H.lambda_recon * recon_loss
+            self.log('loss', loss)
             return loss
         #
         # # train discriminator
-        # if optimizer_idx == 1:
-        #     self.log('lr/opt_d', opt_d.param_groups[0]['lr'])
-        #     valid = torch.ones(s.size(0), 1)
-        #     valid = valid.type_as(s)
+        if optimizer_idx == 1:
+            opt_d = self.optimizers()[1]
+            self.log('lr/opt_d', opt_d.param_groups[0]['lr'])
+            valid = torch.ones(x.size(0), 1)
+            valid = valid.type_as(x)
+
+            real_loss = self.adversarial_loss(self.D(x), valid)
+
+            fake = torch.zeros(x.size(0), 1)
+            fake = fake.type_as(x)
+
+            fake_loss = self.adversarial_loss(self.D(self(x)[0].detach()), fake)
+
+            d_loss = (real_loss + fake_loss) / 2
+            self.log('d_loss', d_loss, True)
+            return d_loss
+
+        # if optimizer_idx == 2:
+        #     opt_g = self.optimizers()[2]
+        #     self.log('lr/opt_g', opt_g.param_groups[0]['lr'])
+        #     mu, logvar = self.net.encode(x)
+        #     z = self.net.reparameterize(mu, logvar).detach()
+        #     out = self.net.decode(z)
+        #     z_out = self.net.encode(out)[0]
         #
-        #     real_loss = self.adversarial_loss(self.D(s), valid)
-        #
-        #     fake = torch.zeros(s.size(0), 1)
-        #     fake = fake.type_as(s)
-        #
-        #     fake_loss = self.adversarial_loss(self.D(self(c, s).detach()), fake)
-        #
-        #     d_loss = (real_loss + fake_loss) / 2
-        #     self.log('d_loss', d_loss, True)
-        #     return d_loss
+        #     latent_loss = F.l1_loss(z_out, z, reduction='mean')
+        #     self.log("latent_loss", latent_loss, True)
+        #     return latent_loss
 
     def configure_optimizers(self):
         H = self.hparams
-        opt_g = torch.optim.Adam(self.net.parameters(), H.lr, weight_decay=H.weight_decay)
-        # opt_d = torch.optim.Adam(self.D.parameters(), H.lr, weight_decay=H.weight_decay)
-        return [opt_g]
+        opt_vae = torch.optim.Adam(self.net.parameters(), H.lr, weight_decay=H.weight_decay)
+        opt_d = torch.optim.Adam(self.D.parameters(), H.lr, weight_decay=H.weight_decay)
+        # opt_g = torch.optim.Adam(self.net.decoder.parameters(), H.lr, weight_decay=H.weight_decay)
+        return [opt_vae, opt_d]
 
     def on_epoch_end(self):
         # grid = torchvision.utils.make_grid(self.c[:6])
