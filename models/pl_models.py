@@ -66,7 +66,7 @@ class LitVAE(pl.LightningModule):
         return 0.5 * torch.sum(mu**2 + logvar.exp() - logvar - 1, dim=1).mean(0)
 
     def adversarial_loss(self, out_logits, y):
-        return F.binary_cross_entropy_with_logits(out_logits, y)
+        return F.mse_loss(out_logits, y)
 
     def training_step(self, batch, batch_idx, optimizer_idx=0):
         x = batch

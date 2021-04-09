@@ -22,5 +22,5 @@ LIT_MODEL:
 #  lambda_latent: 0.5
 
 TRAINER:
-  max_epochs: 1000
+  max_epochs: 10000
   progress_bar_refresh_rate: 1

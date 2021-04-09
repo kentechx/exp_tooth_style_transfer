@@ -20,7 +20,7 @@ class Encoder(nn.Module):
             nn.Conv2d(_cin, _cout, kernel_size=3, stride=2, padding=1),
             nn.ReLU(inplace=True)
         )
-        cs = [cin, 32, 64, 128, 128, 128]
+        cs = [cin, 32, 64, 128, 256, 512]
         self.network = nn.Sequential(*[
             conv(cs[i], cs[i+1]) for i in range(len(cs)-1)
         ])
@@ -36,7 +36,7 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(_cin, _cout, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(inplace=True)
         )
-        cs = [128, 128, 128, 64, 32, 32]
+        cs = [512, 256, 128, 64, 32, 32]
         self.network = nn.Sequential(*[
             conv(cs[i], cs[i+1]) for i in range(len(cs)-1)
         ])
@@ -52,7 +52,7 @@ class VAE(nn.Module):
         # resnet = torch.hub.load('pytorch/vision:v0.6.0', 'resnet34', pretrained=True)
         # self.encoder = nn.Sequential(*list(resnet.children())[:-1])
         self.encoder = Encoder(3, 224)
-        output_size = 128 * 7 * 7
+        output_size = 512 * 7 * 7
         self.fc_mu = nn.Linear(output_size, latent_dim)
         self.fc_var = nn.Linear(output_size, latent_dim)
 
