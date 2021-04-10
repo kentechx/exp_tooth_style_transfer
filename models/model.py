@@ -60,7 +60,7 @@ class VAE(nn.Module):
         self.decoder = Decoder()
         self.final = nn.Sequential(
             nn.Conv2d(32, 3, kernel_size=3, padding=1),
-            nn.Sigmoid())
+            nn.Tanh())
 
     def encode(self, input: torch.Tensor):
         x = self.encoder(input)

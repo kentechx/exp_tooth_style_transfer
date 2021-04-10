@@ -33,6 +33,17 @@ class LitVAE(pl.LightningModule):
 
         self.set_hook()
 
+        self.net.apply(self.weight_init)
+        self.D.apply(self.weight_init)
+
+    def weight_init(self, m):
+        classname = m.__class__.__name__
+        if classname.find("Conv") != -1:
+            torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
+        elif classname.find("BatchNorm2d") != -1:
+            torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
+            torch.nn.init.constant_(m.bias.data, 0.0)
+
     def forward(self, x):
         return self.net(x)
 
@@ -58,7 +69,23 @@ class LitVAE(pl.LightningModule):
         style_loss = self.styleLoss(style_activations, output_activations)
         return content_loss + self.hparams.lambda_ * style_loss
 
-    def reconstruct_loss(self, out_emb, target_emb):
+    def reconstruct_loss(self, out_img, target_img):
+        # normalize to [0, 1]
+        out_img = out_img * 0.5 + 0.5
+        target_img = target_img * 0.5 + 0.5
+
+        # normalize to the range which vgg accepts
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        mean = torch.as_tensor([0.485, 0.456, 0.406]).type_as(out_img).view(-1, 1, 1)
+        std = torch.as_tensor([0.229, 0.224, 0.225]).type_as(out_img).view(-1, 1, 1)
+        out_img = (out_img-mean)/std
+        target_img = (target_img-mean)/std
+
+        self.vgg(out_img)
+        out_emb = [act.clone() for act in self.activations]
+        self.vgg(target_img)
+        target_emb = [act.clone() for act in self.activations]
+
         loss = [torch.linalg.norm(o - t, dim=[1, 2, 3]).mean() for o, t in zip(out_emb, target_emb)]
         return sum(loss)
 
@@ -81,12 +108,7 @@ class LitVAE(pl.LightningModule):
             if batch_idx % 10 == 0:
                 self.x, self.gen_img = x, gen_img
 
-            self.vgg(gen_img)
-            out_emb = [act.clone() for act in self.activations]
-            self.vgg(x)
-            target_emb = [act.clone() for act in self.activations]
-
-            recon_loss = self.reconstruct_loss(out_emb, target_emb)
+            recon_loss = self.reconstruct_loss(gen_img, x)
             kld = self.kl_divergence(mu, logvar)
             l1 = F.l1_loss(gen_img, x, reduction='sum')
 
@@ -143,10 +165,9 @@ class LitVAE(pl.LightningModule):
     def on_epoch_end(self):
         # grid = torchvision.utils.make_grid(self.c[:6])
         # self.logger.experiment.add_image('images/content', grid, self.current_epoch)
-        grid = torchvision.utils.make_grid(self.x[:6])
-        self.logger.experiment.add_image('images/input', grid, self.current_epoch)
-        grid = torchvision.utils.make_grid(self.gen_img[:6])
-        self.logger.experiment.add_image('images/generated', grid, self.current_epoch)
+        images = torch.cat((self.x[:6], self.gen_img[:6]), 0)
+        grid = torchvision.utils.make_grid(images, nrow=6, normalize=True)
+        self.logger.experiment.add_image('images', grid, self.current_epoch)
         self.logger.experiment.flush()
 
     def set_hook(self):
