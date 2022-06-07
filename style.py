@@ -22,8 +22,8 @@ def loadImage(filename):
 if __name__ == "__main__":
     # declare variables to store hooks even though they aren't nessary for inference you need them to load the model from file
     model = LigAdaIN.load_from_checkpoint('lightning_logs/version_7/checkpoints/epoch=815-step=136180.ckpt')
-    content_img = loadImage("datasets/img/content/C01001459133.jpg")
-    style_img = loadImage("datasets/img/style/C01002748887.jpg")
+    content_img = loadImage("datasets/content/C01001459133.jpg")
+    style_img = loadImage("datasets/style/C01002748887.jpg")
 
     output_img = model(content_img, style_img)
     save_image(output_img, 'output.jpg')
