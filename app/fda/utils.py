@@ -1,4 +1,5 @@
 import torch
+import cv2
 import numpy as np
 
 def extract_ampl_phase(fft_im):
@@ -87,3 +88,42 @@ def FDA_source_to_target_np( src_img, trg_img, L=0.1 ):
     src_in_trg = np.real(src_in_trg)
 
     return src_in_trg
+
+
+def fda(im_src: np.ndarray, im_trg: np.ndarray):
+    im_src = im_src.astype('f4')
+    im_trg = im_trg.astype('f4')
+
+    im_src = im_src.transpose((2, 0, 1))
+    im_trg = im_trg.transpose((2, 0, 1))
+
+    src_in_trg = FDA_source_to_target_np(im_src, im_trg, L=0.01)
+
+    src_in_trg = src_in_trg.transpose((1, 2, 0))
+    return src_in_trg
+
+
+# ------------------------------------------------------------
+# helper functions
+# ------------------------------------------------------------
+def show(img: np.ndarray):
+    if img.dtype != np.uint8:
+        if img.max() <= 1:
+            img = (img * 255).astype(np.uint8)
+        else:
+            img = ((img-img.min()) / (img.max()-img.min()) * 255).astype(np.uint8)
+    cv2.imshow('img', img)
+    cv2.waitKey()
+
+def show_switch(img: np.ndarray, img_target: np.ndarray):
+    imgs = [img.astype('u1'), img_target.astype(np.uint8)]
+    i = 0
+    while True:
+        cv2.imshow('img', imgs[i])
+        k = cv2.waitKey(0)
+        if k == ord(' '):
+            i = 1 - i
+        elif k == ord('q'):
+            cv2.destroyAllWindows()
+            break
+
