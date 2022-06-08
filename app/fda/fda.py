@@ -26,13 +26,13 @@ def run(img_src, img_trg, content_dir):
     mask_trg, tooth_mask_trg, gum_mask_trg = get_mask(content_trg)
 
     # tooth
-    out_tooth = fda(im_src * tooth_mask_src[..., None], im_trg * tooth_mask_trg[..., None])
+    out_tooth = fda(im_src * tooth_mask_src[..., None], im_trg * tooth_mask_trg[..., None], L=0.01)
     out_tooth = out_tooth * tooth_mask_src[..., None]
     out_tooth = np.clip(out_tooth, 0, 255).astype('u1')
     show_switch(out_tooth, im_trg)
 
     # gum
-    out_gum = fda(im_src * gum_mask_src[..., None], im_trg * gum_mask_trg[..., None])
+    out_gum = fda(im_src * gum_mask_src[..., None], im_trg * gum_mask_trg[..., None], L=0.01)
     out_gum = out_gum * gum_mask_src[..., None]
     out_gum = np.clip(out_gum, 0, 255).astype('u1')
     show_switch(out_gum, im_trg)
@@ -40,6 +40,7 @@ def run(img_src, img_trg, content_dir):
     # out
     out = out_tooth * tooth_mask_src[..., None] + out_gum * gum_mask_src[..., None] * (1-tooth_mask_src[..., None])
     show_switch(out, im_trg)
+    show_switch(out, im_src)
 
     cv2.imwrite('out.png', out)
 

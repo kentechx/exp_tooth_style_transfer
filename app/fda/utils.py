@@ -90,16 +90,19 @@ def FDA_source_to_target_np( src_img, trg_img, L=0.1 ):
     return src_in_trg
 
 
-def fda(im_src: np.ndarray, im_trg: np.ndarray):
-    im_src = im_src.astype('f4')
-    im_trg = im_trg.astype('f4')
+def fda(im_src: np.ndarray, im_trg: np.ndarray, L=0.01):
+    im_src = im_src.astype('f4') / 255.
+    im_trg = im_trg.astype('f4') / 255.
 
     im_src = im_src.transpose((2, 0, 1))
     im_trg = im_trg.transpose((2, 0, 1))
 
-    src_in_trg = FDA_source_to_target_np(im_src, im_trg, L=0.01)
+    src_in_trg = FDA_source_to_target_np(im_src, im_trg, L=L)
 
     src_in_trg = src_in_trg.transpose((1, 2, 0))
+    np.clip(src_in_trg, 0, 1, out=src_in_trg)
+
+    src_in_trg *= 255
     return src_in_trg
 
 
@@ -115,8 +118,8 @@ def show(img: np.ndarray):
     cv2.imshow('img', img)
     cv2.waitKey()
 
-def show_switch(img: np.ndarray, img_target: np.ndarray):
-    imgs = [img.astype('u1'), img_target.astype(np.uint8)]
+def show_switch(img1: np.ndarray, img2: np.ndarray):
+    imgs = [img1.astype('u1'), img2.astype(np.uint8)]
     i = 0
     while True:
         cv2.imshow('img', imgs[i])
